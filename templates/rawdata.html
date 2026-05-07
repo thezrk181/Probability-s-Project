@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+{% block title %}Raw Dataset{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div class="badge">Source Data</div>
+  <h2>Player Records</h2>
+  <p>Full dataset including batting averages, strike rates, and career totals for all T20 international players.</p>
+</div>
+
+<div class="card">
+  <div class="card-title">
+    <i data-lucide="database" class="icon"></i>
+    Dataset Explorer
+  </div>
+  
+  <div style="display:flex; gap:12px; margin-bottom:24px; align-items:center; flex-wrap:wrap;">
+    <div style="flex:1; min-width:200px;">
+      <input type="text" id="raw-search" placeholder="Filter by player name…" oninput="loadRaw(1)">
+    </div>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <span style="font-size:12px; color:var(--muted); text-transform:uppercase;">Sort</span>
+      <select id="raw-sort" style="width:140px;" onchange="loadRaw(1)">
+        <option value="Runs">Total Runs</option>
+        <option value="Ave">Average</option>
+        <option value="SR">Strike Rate</option>
+        <option value="Mat">Matches</option>
+      </select>
+      <select id="raw-dir" style="width:100px;" onchange="loadRaw(1)">
+        <option value="desc">Desc</option>
+        <option value="asc">Asc</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="raw-table-container">
+    <div class="loader"><div class="spinner"></div>Fetching records…</div>
+  </div>
+
+  <div id="raw-pagination" style="display:flex; gap:8px; justify-content:center; margin-top:24px;"></div>
+</div>
+
+<script>
+let CURRENT_PAGE = 1;
+
+async function loadRaw(page = 1) {
+  CURRENT_PAGE = page;
+  const search = document.getElementById('raw-search').value;
+  const sort   = document.getElementById('raw-sort').value;
+  const dir    = document.getElementById('raw-dir').value;
+  
+  const r = await fetch(`/api/all-players?page=${page}&search=${search}&sort=${sort}&dir=${dir}`);
+  const d = await r.json();
+
+  const rows = d.players.map((p,i) => `
+    <tr>
+      <td><span class="rank-badge">${(page-1)*50 + i + 1}</span></td>
+      <td style="font-weight:600;">${p.Player}</td>
+      <td class="num">${p.Mat}</td>
+      <td class="num">${p.Inns}</td>
+      <td class="num" style="color:var(--text)">${p.Runs}</td>
+      <td class="num">${p.Ave}</td>
+      <td class="num">${p.SR}</td>
+      <td class="num" style="opacity:0.6;">${p['4s']}</td>
+      <td class="num" style="opacity:0.6;">${p['6s']}</td>
+    </tr>`).join('');
+
+  document.getElementById('raw-table-container').innerHTML = `
+    <div class="table-wrap"><table>
+      <thead><tr>
+        <th>#</th><th>Player</th><th>Mat</th><th>Inns</th><th>Runs</th><th>Ave</th><th>SR</th><th>4s</th><th>6s</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>
+  `;
+
+  // Pagination
+  const totalPages = Math.ceil(d.total / 50);
+  let pgHTML = '';
+  const start = Math.max(1, page - 2);
+  const end = Math.min(totalPages, page + 2);
+
+  if (page > 1) pgHTML += `<button class="btn btn-outline" style="padding:6px 12px;" onclick="loadRaw(${page-1})"><i data-lucide="chevron-left" style="width:16px;"></i></button>`;
+  for(let i=start; i<=end; i++) {
+    pgHTML += `<button class="btn ${i===page ? '' : 'btn-outline'}" style="padding:6px 12px;" onclick="loadRaw(${i})">${i}</button>`;
+  }
+  if (page < totalPages) pgHTML += `<button class="btn btn-outline" style="padding:6px 12px;" onclick="loadRaw(${page+1})"><i data-lucide="chevron-right" style="width:16px;"></i></button>`;
+  
+  document.getElementById('raw-pagination').innerHTML = pgHTML;
+  lucide.createIcons();
+}
+
+loadRaw();
+</script>
+{% endblock %}

@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>T20 Cricket Analytics — Probability & Statistics Project</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&family=DM+Sans:ital,wght@0,300;0,400;0,600;1,400&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="/static/css/style.css"/>
+</head>
+<body>
+<!-- NAV -->
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-badge">T20</div>
+    <div class="logo-text">
+      <span class="logo-title">Cricket</span>
+      <span class="logo-sub">Analytics</span>
+    </div>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#" class="nav-link active" data-page="dashboard">
+      <span class="nav-icon">◈</span><span>Dashboard</span>
+    </a></li>
+    <li><a href="#" class="nav-link" data-page="descriptive">
+      <span class="nav-icon">∑</span><span>Descriptive Stats</span>
+    </a></li>
+    <li><a href="#" class="nav-link" data-page="probability">
+      <span class="nav-icon">P(X)</span><span>Probability</span>
+    </a></li>
+    <li><a href="#" class="nav-link" data-page="regression">
+      <span class="nav-icon">∿</span><span>Regression</span>
+    </a></li>
+    <li><a href="#" class="nav-link" data-page="rawdata">
+      <span class="nav-icon">⊞</span><span>Raw Data</span>
+    </a></li>
+  </ul>
+  <div class="sidebar-footer">
+    <div class="footer-badge">FAST NUCES · Spring 2026</div>
+    <div class="footer-sub">Prob & Stats Project</div>
+  </div>
+</nav>
+
+<div class="main-content" id="mainContent">
+  <!-- DASHBOARD PAGE -->
+  <div class="page active" id="page-dashboard">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Dashboard</h1>
+        <p class="page-subtitle">ICC T20 World — 2006 Players · 15 Variables</p>
+      </div>
+      <div class="search-wrapper">
+        <input type="text" id="searchInput" placeholder="Search player…" class="search-input" autocomplete="off"/>
+        <div id="searchResults" class="search-results hidden"></div>
+      </div>
+    </div>
+
+    <div class="stat-cards" id="overviewCards">
+      <div class="stat-card loading-shimmer"></div>
+      <div class="stat-card loading-shimmer"></div>
+      <div class="stat-card loading-shimmer"></div>
+      <div class="stat-card loading-shimmer"></div>
+      <div class="stat-card loading-shimmer"></div>
+    </div>
+
+    <div class="charts-grid">
+      <div class="chart-card wide">
+        <div class="chart-card-header">
+          <h3>Top 10 Players by Total Runs</h3>
+          <span class="chart-badge">Bar Chart</span>
+        </div>
+        <canvas id="topRunsChart" height="260"></canvas>
+      </div>
+      <div class="chart-card wide">
+        <div class="chart-card-header">
+          <h3>Top 10 Players by Batting Average <span class="note">(min. 20 innings)</span></h3>
+          <span class="chart-badge">Bar Chart</span>
+        </div>
+        <canvas id="topAvgChart" height="260"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <h3>Top Strike Rates</h3>
+          <span class="chart-badge">Horizontal Bar</span>
+        </div>
+        <canvas id="topSRChart" height="260"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <h3>Top Six Hitters</h3>
+          <span class="chart-badge">Bar Chart</span>
+        </div>
+        <canvas id="top6sChart" height="260"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- DESCRIPTIVE STATS PAGE -->
+  <div class="page hidden" id="page-descriptive">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Descriptive Statistics</h1>
+        <p class="page-subtitle">Central Tendency · Spread · Confidence Intervals · Correlations</p>
+      </div>
+    </div>
+
+    <div class="charts-grid">
+      <div class="chart-card wide">
+        <div class="chart-card-header">
+          <h3>Runs Distribution (Frequency Histogram)</h3>
+          <span class="chart-badge">Histogram</span>
+        </div>
+        <canvas id="runsHistChart" height="240"></canvas>
+      </div>
+
+      <div class="chart-card wide">
+        <div class="chart-card-header">
+          <h3>Summary Statistics Table</h3>
+          <span class="chart-badge">Table</span>
+        </div>
+        <div id="statsTable" class="table-wrapper"></div>
+      </div>
+
+      <div class="chart-card wide">
+        <div class="chart-card-header">
+          <h3>95% Confidence Intervals</h3>
+          <span class="chart-badge">CI Visualization</span>
+        </div>
+        <div id="ciViz" class="ci-viz-wrapper"></div>
+      </div>
+
+      <div class="chart-card wide">
+        <div class="chart-card-header">
+          <h3>Correlation Matrix (Key Variables)</h3>
+          <span class="chart-badge">Heatmap</span>
+        </div>
+        <div id="corrMatrix" class="corr-wrapper"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROBABILITY PAGE -->
+  <div class="page hidden" id="page-probability">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Probability Analysis</h1>
+        <p class="page-subtitle">Distribution Fitting · Normality Tests · Probability Calculations</p>
+      </div>
+    </div>
+
+    <div class="charts-grid">
+      <div class="chart-card wide">
+        <div class="chart-card-header">
+          <h3>Normality Test — Shapiro-Wilk</h3>
+          <span class="chart-badge">Hypothesis Test</span>
+        </div>
+        <div id="normalityResult" class="normality-card"></div>
+      </div>
+
+      <div class="chart-card wide">
+        <div class="chart-card-header">
+          <h3>Q-Q Plot — Normal vs Empirical Quantiles</h3>
+          <span class="chart-badge">Q-Q Plot</span>
+        </div>
+        <canvas id="qqChart" height="280"></canvas>
+      </div>
+
+      <div class="chart-card wide">
+        <div class="chart-card-header">
+          <h3>Distribution Fit — Normal vs Log-Normal on Runs</h3>
+          <span class="chart-badge">PDF Overlay</span>
+        </div>
+        <canvas id="distFitChart" height="280"></canvas>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <h3>Empirical Probabilities</h3>
+          <span class="chart-badge">Probability Table</span>
+        </div>
+        <div id="probTable" class="prob-table-wrapper"></div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <h3>Binomial Distribution — P(scoring a fifty in k of 10 innings)</h3>
+          <span class="chart-badge">PMF</span>
+        </div>
+        <canvas id="binomChart" height="260"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- REGRESSION PAGE -->
+  <div class="page hidden" id="page-regression">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Regression & Prediction</h1>
+        <p class="page-subtitle">Multiple Linear Regression · Runs = f(Strike Rate, Matches)</p>
+      </div>
+    </div>
+
+    <div class="charts-grid">
+      <div class="chart-card wide">
+        <div class="chart-card-header">
+          <h3>Model Summary</h3>
+          <span class="chart-badge">OLS Results</span>
+        </div>
+        <div id="modelSummary" class="model-summary"></div>
+      </div>
+
+      <div class="chart-card wide">
+        <div class="chart-card-header">
+          <h3>Actual vs Predicted Runs</h3>
+          <span class="chart-badge">Scatter Plot</span>
+        </div>
+        <canvas id="actualVsPredChart" height="280"></canvas>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <h3>SR vs Runs (with regression overlay)</h3>
+          <span class="chart-badge">Scatter</span>
+        </div>
+        <canvas id="srRunsChart" height="280"></canvas>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <h3>Residual Distribution</h3>
+          <span class="chart-badge">Histogram</span>
+        </div>
+        <canvas id="residualChart" height="280"></canvas>
+      </div>
+
+      <div class="chart-card wide">
+        <div class="chart-card-header">
+          <h3>🎯 Predict Player Runs</h3>
+          <span class="chart-badge">Interactive</span>
+        </div>
+        <div class="predictor-panel">
+          <div class="predictor-inputs">
+            <div class="input-group">
+              <label>Strike Rate (SR)</label>
+              <input type="range" id="srSlider" min="50" max="200" value="130" step="1"/>
+              <span id="srVal" class="slider-val">130</span>
+            </div>
+            <div class="input-group">
+              <label>Matches Played</label>
+              <input type="range" id="matSlider" min="1" max="120" value="40" step="1"/>
+              <span id="matVal" class="slider-val">40</span>
+            </div>
+            <button id="predictBtn" class="predict-btn">PREDICT</button>
+          </div>
+          <div id="predictionResult" class="prediction-result hidden"></div>
+          <div id="similarPlayers" class="similar-players hidden"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RAW DATA PAGE -->
+  <div class="page hidden" id="page-rawdata">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Raw Data Explorer</h1>
+        <p class="page-subtitle">Full dataset — 2006 Players · Sort, Filter, Search</p>
+      </div>
+    </div>
+    <div class="table-controls">
+      <input type="text" id="tableSearch" placeholder="Search player…" class="search-input"/>
+      <select id="countryFilter" class="filter-select">
+        <option value="">All Countries</option>
+      </select>
+      <select id="sortSelect" class="filter-select">
+        <option value="Runs">Sort: Runs</option>
+        <option value="Ave">Sort: Average</option>
+        <option value="SR">Sort: Strike Rate</option>
+        <option value="Mat">Sort: Matches</option>
+        <option value="BF">Sort: Balls Faced</option>
+        <option value="4s">Sort: Fours</option>
+        <option value="6s">Sort: Sixes</option>
+      </select>
+      <button id="exportBtn" class="export-btn">Export CSV</button>
+    </div>
+    <div class="table-info" id="tableInfo">Loading…</div>
+    <div class="table-wrapper" id="rawTableWrapper"></div>
+    <div class="pagination" id="pagination"></div>
+  </div>
+
+</div><!-- end main-content -->
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>
