@@ -1,0 +1,255 @@
+{% extends 'base.html' %}
+{% block title %}Probability Analysis{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div class="badge">Probabilistic Modeling</div>
+  <h2>Probability Distributions</h2>
+  <p>Testing for normality, analyzing log-normal fit for runs, and calculating empirical performance probabilities.</p>
+</div>
+
+<div class="grid-3 mb-24">
+  <!-- Empirical Probabilities -->
+  <div class="card">
+    <div class="card-title">
+      <i data-lucide="percent" class="icon"></i>
+      Empirical Likelihoods
+    </div>
+    <div id="prob-list">
+      <div class="loader"><div class="spinner"></div>Sampling data…</div>
+    </div>
+    <div class="math-logic" id="empirical-math">
+      <div class="formula">P(A) = n(A) / n(S)</div>
+      <div class="calc" id="empirical-calc"></div>
+    </div>
+  </div>
+
+  <!-- Conditional Probabilities -->
+  <div class="card">
+    <div class="card-title">
+      <i data-lucide="filter" class="icon"></i>
+      Conditional Insight
+    </div>
+    <div id="conditional-list">
+      <div class="loader"><div class="spinner"></div>Calculating dependencies…</div>
+    </div>
+    <div class="math-logic">
+      <div class="formula">P(A|B) = P(A ∩ B) / P(B)</div>
+      <div class="calc">Based on relative subset frequencies</div>
+    </div>
+  </div>
+
+  <!-- Symmetry Analysis -->
+  <div class="card">
+    <div class="card-title">
+      <i data-lucide="check-circle-2" class="icon"></i>
+      Symmetry Analysis
+    </div>
+    <div id="normality-test"></div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-title">
+      <i data-lucide="scatter-chart" class="icon"></i>
+      Q-Q Plot (Normal Probability)
+    </div>
+    <div class="math-logic" style="margin-bottom:15px;">
+      <div class="formula">Z = (x - μ) / σ</div>
+      <div class="calc">Comparing data to Standard Normal quantiles</div>
+    </div>
+    <canvas id="qq-chart" height="250"></canvas>
+  </div>
+  <div class="card">
+    <div class="card-title">
+      <i data-lucide="function-square" class="icon"></i>
+      Runs Density Estimation
+    </div>
+    <canvas id="dist-chart" height="250"></canvas>
+  </div>
+</div>
+
+<script>
+async function loadProb() {
+  const r = await fetch('/api/probability-analysis');
+  const d = await r.json();
+
+  // 1. Empirical
+  const p = d.probabilities;
+  const rows = [
+    { label: 'Runs > 500', val: p.runs_gt_500 },
+    { label: 'Runs > 1000', val: p.runs_gt_1000 },
+    { label: 'Avg > 30', val: p.avg_gt_30 },
+    { label: 'Avg > 40', val: p.avg_gt_40 },
+    { label: 'SR > 130', val: p.sr_gt_130 },
+    { label: 'SR > 150', val: p.sr_gt_150 },
+  ];
+  document.getElementById('prob-list').innerHTML = rows.map(item => `
+    <div class="prob-row">
+      <span class="prob-label">${item.label}</span>
+      <div class="prob-bar-wrap"><div class="prob-bar" style="width:${item.val*100}%"></div></div>
+      <span class="prob-val">${(item.val*100).toFixed(1)}%</span>
+    </div>
+  `).join('');
+
+  // 1.5. Conditional
+  const cp = d.conditional_probs;
+  const cpRows = [
+    { label: 'P(Runs > 1k | Mat > 50)', val: cp.runs_gt_1000_given_mat_gt_50 },
+    { label: 'P(Avg > 40 | Runs > 500)', val: cp.avg_gt_40_given_runs_gt_500 },
+  ];
+  document.getElementById('conditional-list').innerHTML = cpRows.map(item => `
+    <div class="prob-row">
+      <span class="prob-label" style="font-size:11px; width:120px;">${item.label}</span>
+      <div class="prob-bar-wrap"><div class="prob-bar" style="width:${item.val*100}%"></div></div>
+      <span class="prob-val" style="width:45px;">${(item.val*100).toFixed(1)}%</span>
+    </div>
+  `).join('');
+
+  // 2. Distribution Shape
+  const n = d.distribution_shape;
+  document.getElementById('normality-test').innerHTML = `
+    <div style="text-align:center; padding:10px 0;">
+      <div style="font-size:12px; color:var(--muted); margin-bottom:10px;">SYMMETRY ANALYSIS</div>
+      <div style="font-size:28px; font-weight:800; color:${n.is_normal ? 'var(--green)' : 'var(--amber)'}">${n.is_normal ? 'SYMMETRIC' : 'HIGHLY SKEWED'}</div>
+      <p style="font-size:13px; color:var(--muted); margin-top:8px;">The distribution of runs is <b>Right-Skewed</b>.</p>
+    </div>
+    <div style="display:flex; gap:10px; margin-top:20px;">
+      <div class="stat-card" style="flex:1; padding:12px;">
+        <div class="stat-label">Skewness</div>
+        <div class="stat-value" style="font-size:22px; color:var(--amber);">${n.skewness}</div>
+      </div>
+      <div class="stat-card" style="flex:1; padding:12px;">
+        <div class="stat-label">Kurtosis</div>
+        <div class="stat-value" style="font-size:22px; color:var(--blue);">${n.kurtosis}</div>
+      </div>
+    </div>
+  `;
+
+  // 3. Q-Q Plot
+  new Chart(document.getElementById('qq-chart'), {
+    type: 'scatter',
+    data: {
+      datasets: [
+        { label: 'Observed', data: d.qq_plot.theoretical.map((t,i) => ({x: t, y: d.qq_plot.observed[i]})), backgroundColor: '#39ff85' },
+        { label: 'Reference', data: [{x:0, y:0}, {x:3000, y:3000}], type: 'line', borderColor: 'rgba(255,255,255,0.2)', borderDash: [5,5], pointRadius: 0 }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { title: { display: true, text: 'Theoretical Quantiles', color: '#94a3b8' }, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+        y: { title: { display: true, text: 'Sample Quantiles', color: '#94a3b8' }, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+      }
+    }
+  });
+
+  // 4. Dist
+  new Chart(document.getElementById('dist-chart'), {
+    type: 'line',
+    data: {
+      labels: d.runs_density.x.map(val => Math.round(val)),
+      datasets: [{
+        label: 'Density',
+        data: d.runs_density.y,
+        borderColor: '#39ff85',
+        backgroundColor: 'rgba(57, 255, 133, 0.1)',
+        fill: true,
+        tension: 0.4,
+        pointRadius: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#94a3b8', maxRotation: 45, minRotation: 45 }, grid: { display: false } },
+        y: { ticks: { display: false }, grid: { color: 'rgba(255,255,255,0.05)' } }
+      }
+    }
+  });
+
+  // Empirical Calculation Text
+  document.getElementById('empirical-calc').textContent = `Example: P(Runs > 500) = ${(p.runs_gt_500 * d.runs_stats.total).toFixed(0)} / ${d.runs_stats.total}`;
+}
+
+async function loadDist() {
+  const r = await fetch('/api/distributions');
+  const d = await r.json();
+
+  document.getElementById('binom-desc').textContent =
+    `n=${d.binomial.n}, p=${d.binomial.p} — ${d.binomial.description}`;
+  document.getElementById('poisson-desc').textContent =
+    `λ=${d.poisson.lambda} — ${d.poisson.description}`;
+
+  const chartOpts = (labels, data, color) => ({
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{ label: 'P(X=k)', data, backgroundColor: color + '55',
+        borderColor: color, borderWidth: 2, borderRadius: 6 }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#94a3b8' }, grid: { display: false },
+             title: { display: true, text: 'k', color: '#94a3b8' } },
+        y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' },
+             title: { display: true, text: 'Probability', color: '#94a3b8' } }
+      }
+    }
+  });
+
+  new Chart(document.getElementById('binom-chart'),
+    chartOpts(d.binomial.pmf.map(x => x.k), d.binomial.pmf.map(x => x.prob), '#39ff85'));
+  new Chart(document.getElementById('poisson-chart'),
+    chartOpts(d.poisson.pmf.map(x => x.k), d.poisson.pmf.map(x => x.prob), '#ffb830'));
+
+  // Update Math Params
+  document.querySelectorAll('#binom-desc + .math-logic').forEach(el => {
+    const div = document.createElement('div');
+    div.className = 'calc';
+    div.textContent = `Current: n=${d.binomial.n}, p=${d.binomial.p}`;
+    el.appendChild(div);
+  });
+  document.querySelectorAll('#poisson-desc + .math-logic').forEach(el => {
+    const div = document.createElement('div');
+    div.className = 'calc';
+    div.textContent = `Current: λ=${d.poisson.lambda}, e≈2.718`;
+    el.appendChild(div);
+  });
+}
+
+loadProb();
+loadDist();
+</script>
+
+<div class="grid-2" style="margin-top:24px;">
+  <div class="card">
+    <div class="card-title">
+      <i data-lucide="git-branch" class="icon"></i>
+      Binomial Distribution
+    </div>
+    <p style="color:var(--muted); font-size:12px; margin-bottom:16px;" id="binom-desc"></p>
+    <div class="math-logic" style="margin-bottom:12px;">
+      <div class="formula">P(X=k) = <sup>n</sup>C<sub>k</sub> · p<sup>k</sup> · (1-p)<sup>n-k</sup></div>
+    </div>
+    <canvas id="binom-chart" height="200"></canvas>
+  </div>
+  <div class="card">
+    <div class="card-title">
+      <i data-lucide="activity" class="icon"></i>
+      Poisson Distribution
+    </div>
+    <p style="color:var(--muted); font-size:12px; margin-bottom:16px;" id="poisson-desc"></p>
+    <div class="math-logic" style="margin-bottom:12px;">
+      <div class="formula">P(X=k) = (e<sup>-λ</sup> · λ<sup>k</sup>) / k!</div>
+    </div>
+    <canvas id="poisson-chart" height="200"></canvas>
+  </div>
+</div>
+
+{% endblock %}
