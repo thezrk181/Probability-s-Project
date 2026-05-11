@@ -1,6 +1,6 @@
 """
 T20 Cricket Analytics - Flask Backend
-Stat & Prob Project - FAST NUCES Spring 2026
+Comprehensive Statistical & Probability Analysis
 Handles all data loading, statistical analysis, and API endpoints.
 """
 
